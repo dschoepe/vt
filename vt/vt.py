@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 # vt - Simple västtrafik client
 # Copyright (C) 2014 Daniel Schoepe
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -102,8 +102,8 @@ def pp_leg(leg, orig, dest):
 
     def print_stop(s):
         return "{name}[{track}]".format(name=s['name'], track=s['track'])
-    totalmins = int((dest['datetime'] - orig['datetime']).total_seconds() / 60)
-    totaltime = "%02d:%02d" % (int(totalmins / 60), totalmins % 60)
+    totalmins = (dest['datetime'] - orig['datetime']).total_seconds() // 60
+    totaltime = "%02d:%02d" % (totalmins // 60, totalmins % 60)
     # If we're not in a summary entry, add line information to result
     if 'sname' in leg:
         bus = colorize_line(leg['sname'])
@@ -127,7 +127,7 @@ def pp_name(name):
 def pp_trip(trip):
     """Pretty-print one trip."""
     legs = trip['Leg']
-    if type(legs) is dict:
+    if isinstance(legs, dict):
         orig = legs['Origin']
         dest = legs['Destination']
         return {'summary': pp_leg(legs, orig, dest)}
@@ -148,8 +148,8 @@ def print_trips(src, dest):
     def toRow(s):
         return [s['orig_time'], s['orig_stop'], s['separator'],
                 s['dest_time'], s['dest_stop']]
-    trips = list(map(pp_trip, trips_from_to(src, dest)))
-    table = list(map(lambda t: toRow(t['summary']), trips))
+    trips = [pp_trip(x) for x in trips_from_to(src, dest)]
+    table = [toRow(t['summary']) for t in trips]
     headers = ["Time", "Stop", "", "Time", "Stop"]
     lines = tabulate(table, headers=headers).splitlines()
     print(lines[0])
@@ -157,12 +157,12 @@ def print_trips(src, dest):
     for (l, t) in zip(lines[2:], trips):
         print(l)
         if 'details' in t:
-            detailTable = list(map(lambda l: toRow(l), t['details']))
-            detailLines = tabulate(detailTable).splitlines()
-            print("\t* "+detailLines[0])
-            for l2 in detailLines[1:-1]:
+            detailTable = [toRow(l) for l in t['details']]
+            head, *mid, tail = tabulate(detailTable).splitlines()
+            print("\t* "+head)
+            for l2 in mid:
                 print("\t| " + l2)
-            print("\t* "+detailLines[0])
+            print("\t* "+tail)
 
 
 def load_config():
@@ -201,8 +201,7 @@ def locationName(params):
 def name_completions(name):
     """Return a list of completions for given (prefix of a) stop name."""
     r = locationName({'input': name})
-    return list(map(lambda loc: loc['name'],
-                    r['LocationList']['StopLocation']))
+    return [loc['name'] for loc in r['LocationList']['StopLocation']]
 
 
 def id_by_name(name):
