@@ -1,5 +1,3 @@
-global auth_key, default_origin, default_destination, aliases
-
 # Authorisation key to use. Refer to vasttrafik.se on how to obtain one.
 auth_key = 'put your authorization key here'
 # Some abbreviation for commonly used destinations

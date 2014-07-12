@@ -25,20 +25,11 @@ import re
 import xdg.BaseDirectory
 import dateutil.parser
 import colorama
+from importlib import import_module
 import argparse
 from colorama import Fore, Back, Style
 from datetime import time, timedelta
 from tabulate import tabulate
-
-# Settings
-default_origin = None  # Default point of origin of none is given.
-default_destination = None  # Default destination to use if none is given.
-aliases = {}  # shorthands for frequently used stops.
-auth_key = None
-
-# Internal constants
-tripurl = "http://api.vasttrafik.se/bin/rest.exe/v1/trip"
-locationNameUrl = "http://api.vasttrafik.se/bin/rest.exe/v1/location.name"
 
 
 def prepare_stop(stop):
@@ -167,34 +158,39 @@ def print_trips(src, dest):
 
 def load_config():
     """Execute the configuration file as python code."""
-    configfile = os.path.join(xdg.BaseDirectory.xdg_config_home, "vt",
-                              "config.py")
+    configdir = os.path.join(xdg.BaseDirectory.xdg_config_home, "vt")
+    configfile = os.path.join(configdir, "config.py")
     if os.path.exists(configfile):
-        f = open(configfile, "r")
-        src = f.read()
+        sys.path.insert(0, configdir)
         try:
-            code = compile(src, configfile, "exec")
-            exec(code)
+            global config
+            config = import_module('config')
+            if not hasattr(config, 'aliases'):
+                config.aliases = {}
+            for attr in ["default_origin", "default_destination", "auth_key"]:
+                if not hasattr(config, attr):
+                    setattr(config, attr, None)
         except Exception as e:
-            print("Failed to run config, using defaults.")
-            print(e)
+            die("Failed to load config. Make sure %s is valid" % configfile)
     else:
-        print("Config directory doesn't exist")
+        die("Config file doesn't exist")
 
 
 def perform_query(url, params):
     """Perform a query with given parameters."""
-    baseParams = {'authKey': auth_key, 'format': 'json'}
+    baseParams = {'authKey': config.auth_key, 'format': 'json'}
     paramsMerged = dict(baseParams, **params)
     r = requests.get(url, params=paramsMerged)
     return r.json()
 
 
 def trip_query(params):
+    tripurl = "http://api.vasttrafik.se/bin/rest.exe/v1/trip"
     return perform_query(tripurl, params)
 
 
 def locationName(params):
+    locationNameUrl = "http://api.vasttrafik.se/bin/rest.exe/v1/location.name"
     return perform_query(locationNameUrl, params)
 
 
@@ -216,7 +212,7 @@ def id_by_name(name):
 
 def handle_stop_name(name):
     """Translate stop name aliases to their full names."""
-    return aliases.get(name, name)
+    return config.aliases.get(name, name)
 
 
 def trips_fromto_raw(src, dest):
@@ -297,7 +293,7 @@ def main():
     global opts
     opts = parser.parse_args()
     args = opts.args
-    if auth_key is None:
+    if config.auth_key is None:
         die("No auth_key given. "
             "See http://labs.vasttrafik.se/ for instructions.")
     if opts.complete:
@@ -309,13 +305,14 @@ def main():
         if len(args) == 2:
             origin = args[0]
             dest = args[1]
-        elif len(args) == 1 and default_origin is not None:
-            origin = default_origin
+        elif len(args) == 1 and config.default_origin is not None:
+            origin = config.default_origin
             dest = args[0]
         elif len(args) == 0 and\
-                default_origin is not None and default_destination is not None:
-            origin = default_origin
-            dest = default_destination
+                config.default_origin is not None and\
+                config.default_destination is not None:
+            origin = config.default_origin
+            dest = config.default_destination
         else:
             die("Invalid number of arguments.")
         if opts.raw:
