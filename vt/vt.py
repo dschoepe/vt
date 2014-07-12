@@ -171,7 +171,7 @@ def load_config():
                 if not hasattr(config, attr):
                     setattr(config, attr, None)
         except Exception as e:
-            die("Failed to load config. Make sure %s is valid" % configfile)
+            die("Failed to load config. Make sure %s is valid" % configfile, e)
     else:
         die("Config file doesn't exist")
 
