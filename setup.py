@@ -19,7 +19,7 @@ setup(
         'Programming Language :: Python :: 3.4',
     ],
     packages=["vt"],
-    install_requires=['requests', "colorama", "tabulate", "pyxdg"],
+    install_requires=['requests', "colorama", "tabulate", "pyxdg", "python-dateutil"],
     package_data={
     },
     data_files=[],
