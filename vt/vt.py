@@ -267,7 +267,6 @@ def die(msg, exception=None):
 def main():
     """Main entry point."""
     colorama.init()
-    load_config()
     usage = '''
 %(prog)s [options] FROM TO
        %(prog)s [options] TO
@@ -290,6 +289,7 @@ def main():
                         help="Print debug output.", action="store_true",
                         default=False)
     parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
+    load_config()
     global opts
     opts = parser.parse_args()
     args = opts.args
